@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Button,
   Description,
@@ -10,10 +12,11 @@ import {
   TextField,
 } from "@heroui/react";
 import { Check } from "@gravity-ui/icons";
-import { loginUser } from "@/All_API's/Auth_API's/signUp/loginUser";
-import Link from "next/link";
+import { signIn } from "@/lib/auth-client";
 
 export default function LogInForm() {
+  const router = useRouter();
+
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
@@ -24,23 +27,20 @@ export default function LogInForm() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const userData = {
+    const { data, error } = await signIn.email({
       email,
       password,
-    };
+    });
 
-    try {
-      const result = await loginUser(userData);
-
-      console.log("Logged in:", result);
-
-      // TODO:
-      // Save token
-      // Redirect user
-    } catch (error) {
-      console.error(error);
-      alert("Invalid email or password");
+    if (error) {
+      alert(error.message);
+      return;
     }
+
+    console.log("Logged in:", data);
+
+    router.push("/");
+    router.refresh();
   };
 
   return (
@@ -95,7 +95,16 @@ export default function LogInForm() {
           Login
         </Button>
       </Form>
-      <p className=" mt-2">You don`t have an account ? <Link className=" text-blue-500 hover:underline" href="/signup">Sign up</Link></p>
+
+      <p className="mt-2">
+        You don't have an account?{" "}
+        <Link
+          className="text-blue-500 hover:underline"
+          href="/signup"
+        >
+          Sign up
+        </Link>
+      </p>
     </div>
   );
 }

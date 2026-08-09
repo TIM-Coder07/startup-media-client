@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import {
   Button,
   Description,
@@ -10,15 +13,20 @@ import {
   Label,
   TextField,
 } from "@heroui/react";
+
 import { Check } from "@gravity-ui/icons";
-import { uploadImage } from "@/All_API's/Auth_API's/signUp/ImageBBAPI";
-import { registerUser } from "@/All_API's/Auth_API's/signUp/registerUser";
-import Link from "next/link";
+
+import { authClient } from "@/lib/auth-client";
+import { uploadImage } from "@/All_API's/Auth_API's/ImageBBAPI";
+import toast from "react-hot-toast";
 
 export default function RegistrationForm() {
   const [preview, setPreview] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
@@ -27,10 +35,11 @@ export default function RegistrationForm() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
+    const role = formData.get("role") as string;
     const image = formData.get("profilePicture") as File;
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match.");
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -40,15 +49,53 @@ export default function RegistrationForm() {
       profilePicture = await uploadImage(image);
     }
 
-    const userData = {
-      fullName,
+    // Better Auth Signup
+    const { data, error } = await authClient.signUp.email({
+      name: fullName,
       email,
       password,
-      profilePicture,
-    };
+      fetchOptions: {
+        body: {
+          role,
+          profilePicture,
+        },
+      },
+    });
 
-    const result = await registerUser(userData);
-    console.log('Registered userData:', result);
+    console.log("data:", data);
+    console.log("error:", error);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    const response = await fetch(
+      "http://localhost:5000/api/users/profile",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          role,
+          profilePicture,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    console.log(result);
+
+    if (!response.ok) {
+      toast.error(result.message);
+      return;
+    }
+
+    router.push("/");
+    router.refresh();
   };
 
   return (
@@ -57,7 +104,10 @@ export default function RegistrationForm() {
         Create Account
       </h2>
 
-      <Form className="space-y-5" onSubmit={handleSubmit}>
+      <Form
+        className="space-y-5"
+        onSubmit={handleSubmit}
+      >
         <TextField isRequired name="fullName">
           <Label>Full Name</Label>
           <Input placeholder="Enter your full name" />
@@ -70,7 +120,9 @@ export default function RegistrationForm() {
           type="email"
           validate={(value) => {
             if (
-              !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)
+              !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(
+                value
+              )
             ) {
               return "Please enter a valid email address";
             }
@@ -97,7 +149,9 @@ export default function RegistrationForm() {
         >
           <Label>Password</Label>
           <Input placeholder="********" />
-          <Description>Minimum 8 characters.</Description>
+          <Description>
+            Minimum 8 characters.
+          </Description>
           <FieldError />
         </TextField>
 
@@ -112,13 +166,31 @@ export default function RegistrationForm() {
         </TextField>
 
         <div className="space-y-2">
+          <Label>Role</Label>
+
+          <select
+            name="role"
+            required
+            defaultValue=""
+            className="w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:outline-none"
+          >
+            <option value="" disabled>
+              Select your role
+            </option>
+            <option value="user">User</option>
+            <option value="investor">Investor</option>
+            <option value="founder">Founder</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
           <Label>Profile Picture</Label>
 
           <input
-            className="block w-full rounded-lg border p-2"
             type="file"
             name="profilePicture"
             accept="image/*"
+            className="block w-full rounded-lg border p-2"
             onChange={(e) => {
               const file = e.target.files?.[0];
 
@@ -132,7 +204,7 @@ export default function RegistrationForm() {
             <img
               src={preview}
               alt="Preview"
-              className="h-28 w-28 rounded-full object-cover border"
+              className="h-28 w-28 rounded-full border object-cover"
             />
           )}
         </div>
@@ -146,7 +218,15 @@ export default function RegistrationForm() {
         </Button>
       </Form>
 
-      <p className=" mt-2">Already you have an account ? <Link className=" text-blue-500 hover:underline" href="/login">Login</Link></p>
+      <p className="mt-4 text-center">
+        Already have an account?{" "}
+        <Link
+          href="/login"
+          className="text-blue-600 hover:underline"
+        >
+          Login
+        </Link>
+      </p>
     </div>
   );
 }
