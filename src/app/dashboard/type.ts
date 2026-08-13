@@ -8,14 +8,25 @@ export type FounderProfile = {
     location: string;
     linkedin: string;
     profileImage: string;
+
     skills: string[];
+
     bio: string;
 
-    status?:
-        | "pending"
-        | "approved"
-        | "rejected";
+    status?: "pending" | "approved" | "rejected";
 
     createdAt?: string;
     updatedAt?: string;
+};
+
+export type FounderForm = {
+    name: string;
+    email: string;
+    industry: string;
+    experience: string;
+    location: string;
+    linkedin: string;
+    profileImage: string;
+    skills: string;
+    bio: string;
 };

@@ -17,7 +17,15 @@ type FounderForm = {
     bio: string;
 };
 
+type Session = {
+    user?: {
+        name?: string;
+        email?: string;
+    };
+};
+
 type ProfileCardProps = {
+    session: Session | null;
     profile?: FounderProfile | null;
     onSuccess: (data: FounderProfile) => void;
 };
@@ -25,6 +33,7 @@ type ProfileCardProps = {
 const ProfileCard = ({
     profile,
     onSuccess,
+    session
 }: ProfileCardProps) => {
 
     const {
@@ -32,28 +41,23 @@ const ProfileCard = ({
         handleSubmit,
         reset,
     } = useForm<FounderForm>({
-        defaultValues: profile
-            ? {
-                name: profile.name,
-                email: profile.email,
-                industry: profile.industry,
-                experience: profile.experience,
-                location: profile.location,
-                linkedin: profile.linkedin,
-                profileImage: profile.profileImage,
-                skills: profile.skills.join(", "),
-                bio: profile.bio,
-            }
-            : undefined,
+        defaultValues: {
+            name: profile?.name ?? session?.user?.name ?? "",
+            email: profile?.email ?? session?.user?.email ?? "",
+            industry: profile?.industry ?? "",
+            experience: profile?.experience ?? "",
+            location: profile?.location ?? "",
+            linkedin: profile?.linkedin ?? "",
+            profileImage: profile?.profileImage ?? "",
+            skills: profile?.skills?.join(", ") ?? "",
+            bio: profile?.bio ?? "",
+        },
     });
 
 
-    const submitForm = async (
-        data: FounderForm
-    ) => {
+    const submitForm = async (data: FounderForm) => {
         try {
-
-            const founderData: FounderProfile = {
+            const founderData = {
                 ...data,
 
                 skills: data.skills
@@ -62,44 +66,44 @@ const ProfileCard = ({
                     .filter(Boolean),
             };
 
-
             const res = await fetch(
                 `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/founder-requests`,
                 {
                     method: "POST",
-
                     headers: {
                         "Content-Type": "application/json",
                     },
-
                     body: JSON.stringify(founderData),
                 }
             );
 
-
             const result = await res.json();
 
+            console.log(
+                "Submit founder response:",
+                result
+            );
 
             if (!res.ok) {
                 throw new Error(
                     result.message ||
-                    "Failed to submit profile request"
+                    "Failed to submit profile"
                 );
             }
 
-
             toast.success(
-                "Profile request sent to admin!"
+                "Profile submitted for approval"
             );
 
-
-            // Update parent state
-            onSuccess(founderData);
+            // Backend returns `request`
+            onSuccess({
+                ...result.request,
+                status: "pending",
+            });
 
             reset();
 
         } catch (error) {
-
             console.error(error);
 
             toast.error(
@@ -140,7 +144,8 @@ const ProfileCard = ({
                                 type="text"
                                 {...register("name")}
                                 placeholder="Enter your full name"
-                                className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
+                                readOnly
+                                className="w-full rounded-xl border bg-gray-100 px-4 py-3 outline-none"
                             />
 
                         </div>
@@ -156,7 +161,8 @@ const ProfileCard = ({
                                 type="email"
                                 {...register("email")}
                                 placeholder="Enter your email"
-                                className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
+                                readOnly
+                                className="w-full rounded-xl border bg-gray-100 px-4 py-3 outline-none"
                             />
 
                         </div>

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-export default async function getSession() {
+export default async function getServerSession() {
     const cookieStore = await cookies();
 
     const res = await fetch(

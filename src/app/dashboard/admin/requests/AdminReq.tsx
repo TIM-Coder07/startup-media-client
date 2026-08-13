@@ -22,7 +22,7 @@ const AdminReq = () => {
         try {
 
             const res = await fetch(
-                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/founder-requests`
+                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/founder-requests`
             );
 
 
@@ -69,7 +69,7 @@ const AdminReq = () => {
         try {
 
             const res = await fetch(
-                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/founder-requests/${id}/approve`,
+                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/founder-requests/${id}/approve`,
                 {
                     method: "PATCH",
                 }
@@ -120,7 +120,7 @@ const AdminReq = () => {
         try {
 
             const res = await fetch(
-                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/founder-requests/${id}/reject`,
+                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/founder-requests/${id}/reject`,
                 {
                     method: "PATCH",
                 }
