@@ -1,9 +1,17 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useEffect } from "react";
+
+import {
+    useForm,
+} from "react-hook-form";
+
 import toast from "react-hot-toast";
 
-import type { FounderProfile } from "./type";
+import type {
+    FounderProfile,
+} from "./type";
+
 
 type FounderForm = {
     name: string;
@@ -17,56 +25,186 @@ type FounderForm = {
     bio: string;
 };
 
+
 type Session = {
     user?: {
         name?: string;
         email?: string;
+        role?: string;
     };
 };
 
+
 type ProfileCardProps = {
     session: Session | null;
-    profile?: FounderProfile | null;
-    onSuccess: (data: FounderProfile) => void;
+
+    profile?:
+        | FounderProfile
+        | null;
+
+    onSuccess:
+        (
+            data: FounderProfile
+        ) => void;
 };
+
 
 const ProfileCard = ({
     profile,
     onSuccess,
-    session
+    session,
 }: ProfileCardProps) => {
+
+
+    // =================================================
+    // FORM
+    // =================================================
 
     const {
         register,
         handleSubmit,
         reset,
     } = useForm<FounderForm>({
+
         defaultValues: {
-            name: profile?.name ?? session?.user?.name ?? "",
-            email: profile?.email ?? session?.user?.email ?? "",
-            industry: profile?.industry ?? "",
-            experience: profile?.experience ?? "",
-            location: profile?.location ?? "",
-            linkedin: profile?.linkedin ?? "",
-            profileImage: profile?.profileImage ?? "",
-            skills: profile?.skills?.join(", ") ?? "",
-            bio: profile?.bio ?? "",
+
+            name:
+                profile?.name ??
+                session?.user?.name ??
+                "",
+
+            email:
+                profile?.email ??
+                session?.user?.email ??
+                "",
+
+            industry:
+                profile?.industry ??
+                "",
+
+            experience:
+                profile?.experience ??
+                "",
+
+            location:
+                profile?.location ??
+                "",
+
+            linkedin:
+                profile?.linkedin ??
+                "",
+
+            profileImage:
+                profile?.profileImage ??
+                "",
+
+            skills:
+                profile?.skills?.join(
+                    ", "
+                ) ?? "",
+
+            bio:
+                profile?.bio ??
+                "",
         },
     });
 
 
+    // =================================================
+    // RESET WHEN PROFILE / SESSION CHANGES
+    // =================================================
+
+    useEffect(() => {
+
+        reset({
+
+            name:
+                profile?.name ??
+                session?.user?.name ??
+                "",
+
+            email:
+                profile?.email ??
+                session?.user?.email ??
+                "",
+
+            industry:
+                profile?.industry ??
+                "",
+
+            experience:
+                profile?.experience ??
+                "",
+
+            location:
+                profile?.location ??
+                "",
+
+            linkedin:
+                profile?.linkedin ??
+                "",
+
+            profileImage:
+                profile?.profileImage ??
+                "",
+
+            skills:
+                profile?.skills?.join(
+                    ", "
+                ) ?? "",
+
+            bio:
+                profile?.bio ??
+                "",
+        });
+
+    }, [
+        profile,
+        session,
+        reset,
+    ]);
+
+
+    // =================================================
+    // SUBMIT
+    // =================================================
+
     const submitForm = async (data: FounderForm) => {
-        try {
-            const founderData = {
-                ...data,
+    try {
+        const founderData = {
+            ...data,
 
-                skills: data.skills
-                    .split(",")
-                    .map((skill) => skill.trim())
-                    .filter(Boolean),
-            };
+            skills: data.skills
+                .split(",")
+                .map((skill) => skill.trim())
+                .filter(Boolean),
+        };
 
-            const res = await fetch(
+        let res: Response;
+
+        // ==========================================
+        // EDIT EXISTING PROFILE
+        // ==========================================
+
+        if (profile?._id) {
+            res = await fetch(
+                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/founders/${profile._id}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(founderData),
+                }
+            );
+        }
+
+        // ==========================================
+        // CREATE NEW PROFILE REQUEST
+        // ==========================================
+
+        else {
+            res = await fetch(
                 `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/founder-requests`,
                 {
                     method: "POST",
@@ -76,46 +214,63 @@ const ProfileCard = ({
                     body: JSON.stringify(founderData),
                 }
             );
+        }
 
-            const result = await res.json();
+        const result = await res.json();
 
-            console.log(
-                "Submit founder response:",
-                result
-            );
+        console.log("Profile response:", result);
 
-            if (!res.ok) {
-                throw new Error(
-                    result.message ||
-                    "Failed to submit profile"
-                );
-            }
-
-            toast.success(
-                "Profile submitted for approval"
-            );
-
-            // Backend returns `request`
-            onSuccess({
-                ...result.request,
-                status: "pending",
-            });
-
-            reset();
-
-        } catch (error) {
-            console.error(error);
-
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : "Failed to submit profile"
+        if (!res.ok) {
+            throw new Error(
+                result.message ||
+                "Failed to save profile"
             );
         }
-    };
+
+        // ==========================================
+        // EDIT SUCCESS
+        // ==========================================
+
+        if (profile?._id) {
+            toast.success(
+                "Profile updated successfully"
+            );
+
+            onSuccess(result.founder);
+
+            return;
+        }
+
+        // ==========================================
+        // NEW PROFILE SUCCESS
+        // ==========================================
+
+        toast.success(
+            "Profile submitted for approval"
+        );
+
+        onSuccess({
+            ...result.request,
+            status: "pending",
+        });
+
+    } catch (error) {
+        console.error(
+            "Profile submit error:",
+            error
+        );
+
+        toast.error(
+            error instanceof Error
+                ? error.message
+                : "Something went wrong"
+        );
+    }
+};
 
 
     return (
+
         <div className="mx-auto max-w-4xl px-5 py-10">
 
             <div className="rounded-2xl bg-white p-8 shadow-lg">
@@ -127,12 +282,22 @@ const ProfileCard = ({
 
                 <form
                     className="space-y-6"
-                    onSubmit={handleSubmit(submitForm)}
+
+                    onSubmit={
+                        handleSubmit(
+                            submitForm
+                        )
+                    }
                 >
 
-                    {/* Name & Email */}
+
+                    {/* =================================================
+                        NAME + EMAIL
+                    ================================================= */}
 
                     <div className="grid gap-6 md:grid-cols-2">
+
+                        {/* NAME */}
 
                         <div>
 
@@ -140,16 +305,23 @@ const ProfileCard = ({
                                 Full Name
                             </label>
 
+
                             <input
                                 type="text"
-                                {...register("name")}
-                                placeholder="Enter your full name"
+
+                                {...register(
+                                    "name"
+                                )}
+
                                 readOnly
+
                                 className="w-full rounded-xl border bg-gray-100 px-4 py-3 outline-none"
                             />
 
                         </div>
 
+
+                        {/* EMAIL */}
 
                         <div>
 
@@ -157,11 +329,16 @@ const ProfileCard = ({
                                 Email
                             </label>
 
+
                             <input
                                 type="email"
-                                {...register("email")}
-                                placeholder="Enter your email"
+
+                                {...register(
+                                    "email"
+                                )}
+
                                 readOnly
+
                                 className="w-full rounded-xl border bg-gray-100 px-4 py-3 outline-none"
                             />
 
@@ -170,7 +347,9 @@ const ProfileCard = ({
                     </div>
 
 
-                    {/* Industry */}
+                    {/* =================================================
+                        INDUSTRY
+                    ================================================= */}
 
                     <div>
 
@@ -178,17 +357,25 @@ const ProfileCard = ({
                             Industry
                         </label>
 
+
                         <input
                             type="text"
-                            {...register("industry")}
+
+                            {...register(
+                                "industry"
+                            )}
+
                             placeholder="MarTech"
+
                             className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
                         />
 
                     </div>
 
 
-                    {/* Experience & Location */}
+                    {/* =================================================
+                        EXPERIENCE + LOCATION
+                    ================================================= */}
 
                     <div className="grid gap-6 md:grid-cols-2">
 
@@ -198,10 +385,16 @@ const ProfileCard = ({
                                 Experience
                             </label>
 
+
                             <input
                                 type="text"
-                                {...register("experience")}
+
+                                {...register(
+                                    "experience"
+                                )}
+
                                 placeholder="7 years"
+
                                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
                             />
 
@@ -214,10 +407,16 @@ const ProfileCard = ({
                                 Location
                             </label>
 
+
                             <input
                                 type="text"
-                                {...register("location")}
+
+                                {...register(
+                                    "location"
+                                )}
+
                                 placeholder="Dhaka, Bangladesh"
+
                                 className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
                             />
 
@@ -226,7 +425,9 @@ const ProfileCard = ({
                     </div>
 
 
-                    {/* LinkedIn */}
+                    {/* =================================================
+                        LINKEDIN
+                    ================================================= */}
 
                     <div>
 
@@ -234,17 +435,25 @@ const ProfileCard = ({
                             LinkedIn
                         </label>
 
+
                         <input
                             type="url"
-                            {...register("linkedin")}
+
+                            {...register(
+                                "linkedin"
+                            )}
+
                             placeholder="https://linkedin.com/in/username"
+
                             className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
                         />
 
                     </div>
 
 
-                    {/* Profile Image */}
+                    {/* =================================================
+                        PROFILE IMAGE
+                    ================================================= */}
 
                     <div>
 
@@ -252,17 +461,25 @@ const ProfileCard = ({
                             Profile Image URL
                         </label>
 
+
                         <input
                             type="url"
-                            {...register("profileImage")}
+
+                            {...register(
+                                "profileImage"
+                            )}
+
                             placeholder="https://example.com/profile.jpg"
+
                             className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
                         />
 
                     </div>
 
 
-                    {/* Skills */}
+                    {/* =================================================
+                        SKILLS
+                    ================================================= */}
 
                     <div>
 
@@ -270,21 +487,31 @@ const ProfileCard = ({
                             Skills
                         </label>
 
+
                         <input
                             type="text"
-                            {...register("skills")}
+
+                            {...register(
+                                "skills"
+                            )}
+
                             placeholder="React, Next.js, Node.js"
+
                             className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
                         />
 
+
                         <p className="mt-2 text-sm text-gray-500">
-                            Separate multiple skills with commas.
+                            Separate multiple skills
+                            with commas.
                         </p>
 
                     </div>
 
 
-                    {/* Bio */}
+                    {/* =================================================
+                        BIO
+                    ================================================= */}
 
                     <div>
 
@@ -292,25 +519,36 @@ const ProfileCard = ({
                             Bio
                         </label>
 
+
                         <textarea
-                            {...register("bio")}
+                            {...register(
+                                "bio"
+                            )}
+
                             rows={5}
+
                             placeholder="Tell us about yourself..."
+
                             className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
                         />
 
                     </div>
 
 
-                    {/* Submit */}
+                    {/* =================================================
+                        SUBMIT
+                    ================================================= */}
 
                     <button
                         type="submit"
+
                         className="rounded-xl bg-indigo-600 px-8 py-3 font-semibold text-white transition hover:bg-indigo-700"
                     >
+
                         {profile
                             ? "Update Profile"
                             : "Send for Approval"}
+
                     </button>
 
                 </form>
@@ -320,5 +558,6 @@ const ProfileCard = ({
         </div>
     );
 };
+
 
 export default ProfileCard;

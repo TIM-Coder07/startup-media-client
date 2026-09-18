@@ -85,7 +85,7 @@ export default function DashboardSidebar() {
     admin: [
       {
         name: "Dashboard",
-        path: "/dashboard/admin",
+        path: "/dashboard/admin/overview",
       },
       {
         name: "Manage Users",
@@ -97,16 +97,16 @@ export default function DashboardSidebar() {
       },
       {
         name: "Manage Founders",
-        path: "/dashboard/admin/founders",
+        path: "/dashboard/admin/manage-founders",
       },
       {
         name: "Requests",
         path: "/dashboard/admin/requests",
       },
-      // {
-      //   name: "Reports",
-      //   path: "/dashboard/admin/reports",
-      // },
+      {
+        name: "Reports",
+        path: "/dashboard/admin/reports",
+      },
       // {
       //   name: "Settings",
       //   path: "/dashboard/admin/settings",

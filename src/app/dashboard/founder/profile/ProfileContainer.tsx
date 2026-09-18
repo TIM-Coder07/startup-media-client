@@ -7,10 +7,14 @@ import ViewProfile from "./ViewProfile";
 
 import type { FounderProfile } from "./type";
 
+
 type ProfileStatus =
     | "pending"
     | "approved"
-    | "rejected";
+    | "rejected"
+    | "suspended"
+    | "disabled";
+
 
 type Session = {
     user?: {
@@ -20,130 +24,191 @@ type Session = {
     };
 };
 
+
 type ProfileContainerProps = {
     session: Session | null;
 };
+
 
 const ProfileContainer = ({
     session,
 }: ProfileContainerProps) => {
 
     const [profile, setProfile] =
-        useState<FounderProfile | null>(null);
+        useState<FounderProfile | null>(
+            null
+        );
+
 
     const [status, setStatus] =
-        useState<ProfileStatus | null>(null);
+        useState<ProfileStatus | null>(
+            null
+        );
+
 
     const [isEditing, setIsEditing] =
         useState(false);
+
 
     const [loading, setLoading] =
         useState(true);
 
 
-    // ==========================================
+    // =================================================
     // GET PROFILE STATUS
-    // ==========================================
+    // =================================================
 
     useEffect(() => {
 
-        const getProfileStatus = async () => {
+        const getProfileStatus =
+            async () => {
 
-            try {
+                try {
 
-                const email =
-                    session?.user?.email;
-
-                console.log(
-                    "Session email:",
-                    email
-                );
-
-                if (!email) {
-                    setProfile(null);
-                    setStatus(null);
-                    return;
-                }
+                    const email =
+                        session?.user?.email;
 
 
-                const url =
-                    `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}` +
-                    `/founder-requests/me?email=${encodeURIComponent(
+                    console.log(
+                        "Session email:",
                         email
-                    )}`;
-
-
-                console.log(
-                    "Profile API:",
-                    url
-                );
-
-
-                const res = await fetch(
-                    url,
-                    {
-                        cache: "no-store",
-                    }
-                );
-
-
-                const data =
-                    await res.json();
-
-
-                console.log(
-                    "Profile API response:",
-                    data
-                );
-
-
-                // ==================================
-                // NO PROFILE
-                // ==================================
-
-                if (res.status === 404) {
-
-                    setProfile(null);
-                    setStatus(null);
-
-                    return;
-                }
-
-
-                if (!res.ok) {
-
-                    throw new Error(
-                        data.message ||
-                        "Failed to fetch profile"
                     );
+
+
+                    // ---------------------------------
+                    // No session
+                    // ---------------------------------
+
+                    if (!email) {
+
+                        setProfile(null);
+                        setStatus(null);
+
+                        return;
+                    }
+
+
+                    // ---------------------------------
+                    // API URL
+                    // ---------------------------------
+
+                    const url =
+                        `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}` +
+                        `/founder-requests/me?email=${encodeURIComponent(
+                            email
+                        )}`;
+
+
+                    console.log(
+                        "Profile API:",
+                        url
+                    );
+
+
+                    // ---------------------------------
+                    // Fetch
+                    // ---------------------------------
+
+                    const res =
+                        await fetch(
+                            url,
+                            {
+                                cache:
+                                    "no-store",
+                            }
+                        );
+
+
+                    const data =
+                        await res.json();
+
+
+                    console.log(
+                        "Profile API response:",
+                        data
+                    );
+
+
+                    // =================================================
+                    // NO PROFILE + NO REQUEST
+                    // =================================================
+
+                    if (
+                        res.status ===
+                        404
+                    ) {
+
+                        console.log(
+                            "No founder profile found."
+                        );
+
+
+                        setProfile(
+                            null
+                        );
+
+                        setStatus(
+                            null
+                        );
+
+
+                        return;
+                    }
+
+
+                    // =================================================
+                    // ERROR
+                    // =================================================
+
+                    if (!res.ok) {
+
+                        throw new Error(
+                            data.message ||
+                                "Failed to fetch profile"
+                        );
+                    }
+
+
+                    // =================================================
+                    // PROFILE / REQUEST FOUND
+                    // =================================================
+
+                    setProfile(
+                        data.data ??
+                            null
+                    );
+
+
+                    setStatus(
+                        data.status ??
+                            null
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "Failed to fetch profile:",
+                        error
+                    );
+
+
+                    setProfile(
+                        null
+                    );
+
+
+                    setStatus(
+                        null
+                    );
+
+                } finally {
+
+                    setLoading(
+                        false
+                    );
+
                 }
-
-
-                // ==================================
-                // SET PROFILE + STATUS
-                // ==================================
-
-                setStatus(data.status);
-
-                setProfile(data.data);
-
-
-            } catch (error) {
-
-                console.error(
-                    "Failed to fetch profile:",
-                    error
-                );
-
-                setProfile(null);
-                setStatus(null);
-
-            } finally {
-
-                setLoading(false);
-
-            }
-        };
+            };
 
 
         getProfileStatus();
@@ -151,9 +216,9 @@ const ProfileContainer = ({
     }, [session]);
 
 
-    // ==========================================
+    // =================================================
     // LOADING
-    // ==========================================
+    // =================================================
 
     if (loading) {
 
@@ -167,59 +232,70 @@ const ProfileContainer = ({
     }
 
 
-    // ==========================================
-    // EDIT PROFILE
-    // ==========================================
+    // =================================================
+    // EDITING
+    // =================================================
 
     if (isEditing) {
 
         return (
             <ProfileCard
+
                 session={session}
+
                 profile={profile}
+
                 onSuccess={(data) => {
 
                     setProfile(data);
 
-                    setStatus("pending");
+                    setStatus(
+                        "pending"
+                    );
 
-                    setIsEditing(false);
+                    setIsEditing(
+                        false
+                    );
 
                 }}
+
             />
         );
     }
 
 
-    // ==========================================
+    // =================================================
     // APPROVED
-    // ==========================================
+    // =================================================
 
     if (
         status === "approved" &&
         profile
     ) {
 
-        console.log(
-            "Rendering ViewProfile"
-        );
-
         return (
             <ViewProfile
+
                 profile={profile}
+
                 onEdit={() =>
-                    setIsEditing(true)
+                    setIsEditing(
+                        true
+                    )
                 }
+
             />
         );
     }
 
 
-    // ==========================================
+    // =================================================
     // PENDING
-    // ==========================================
+    // =================================================
 
-    if (status === "pending") {
+    if (
+        status === "pending"
+    ) {
 
         return (
             <div className="mx-auto max-w-2xl px-5 py-20">
@@ -237,8 +313,8 @@ const ProfileContainer = ({
 
 
                     <p className="mt-3 text-gray-500">
-                        Your founder profile has been
-                        submitted successfully.
+                        Your founder profile has
+                        been submitted successfully.
                     </p>
 
 
@@ -260,11 +336,13 @@ const ProfileContainer = ({
     }
 
 
-    // ==========================================
+    // =================================================
     // REJECTED
-    // ==========================================
+    // =================================================
 
-    if (status === "rejected") {
+    if (
+        status === "rejected"
+    ) {
 
         return (
             <div className="mx-auto max-w-2xl px-5 py-20">
@@ -282,14 +360,16 @@ const ProfileContainer = ({
 
 
                     <p className="mt-3 text-gray-500">
-                        Your founder profile request was
-                        rejected by the admin.
+                        Your founder profile request
+                        was rejected by the admin.
                     </p>
 
 
                     <button
                         onClick={() =>
-                            setIsEditing(true)
+                            setIsEditing(
+                                true
+                            )
                         }
                         className="mt-6 rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-700"
                     >
@@ -303,20 +383,108 @@ const ProfileContainer = ({
     }
 
 
-    // ==========================================
+    // =================================================
+    // SUSPENDED
+    // =================================================
+
+    if (
+        status === "suspended"
+    ) {
+
+        return (
+            <div className="mx-auto max-w-2xl px-5 py-20">
+
+                <div className="rounded-2xl border bg-white p-10 text-center shadow-sm">
+
+                    <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-2xl">
+                        ⚠️
+                    </div>
+
+
+                    <h1 className="text-3xl font-bold">
+                        Account Suspended
+                    </h1>
+
+
+                    <p className="mt-3 text-gray-500">
+                        Your founder account has
+                        been temporarily suspended
+                        by the admin.
+                    </p>
+
+                </div>
+
+            </div>
+        );
+    }
+
+
+    // =================================================
+    // DISABLED
+    // =================================================
+
+    if (
+        status === "disabled"
+    ) {
+
+        return (
+            <div className="mx-auto max-w-2xl px-5 py-20">
+
+                <div className="rounded-2xl border bg-white p-10 text-center shadow-sm">
+
+                    <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-2xl">
+                        🚫
+                    </div>
+
+
+                    <h1 className="text-3xl font-bold">
+                        Account Disabled
+                    </h1>
+
+
+                    <p className="mt-3 text-gray-500">
+                        Your founder account has
+                        been disabled by the admin.
+                    </p>
+
+                </div>
+
+            </div>
+        );
+    }
+
+
+    // =================================================
     // NO PROFILE
-    // ==========================================
+    // =================================================
+    // This is the important part.
+    //
+    // founders collection থেকে delete হলে
+    // backend 404 পাঠাবে।
+    //
+    // তখন profile = null
+    // status = null
+    //
+    // এবং এই ProfileCard render হবে।
+    // =================================================
 
     return (
         <ProfileCard
+
             session={session}
+
+            profile={null}
+
             onSuccess={(data) => {
 
                 setProfile(data);
 
-                setStatus("pending");
+                setStatus(
+                    "pending"
+                );
 
             }}
+
         />
     );
 };

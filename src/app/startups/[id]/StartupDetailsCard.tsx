@@ -367,6 +367,9 @@ const StartupDetailsCard = ({ startup }: Props) => {
                                 <FaBookmark />
                                 Save Startup
                             </button>
+                            <button className="mt-5 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-blue-400 to-gray-500 py-4 font-semibold text-white transition hover:scale-105">
+                                Report
+                            </button>
 
                         </div>
 

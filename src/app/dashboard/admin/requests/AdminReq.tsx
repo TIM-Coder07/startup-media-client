@@ -1,33 +1,45 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 import RequestCard from "./RequestCard";
 import type { FounderRequest } from "./type";
 
-import toast from "react-hot-toast";
-
-
 const AdminReq = () => {
-
     const [requests, setRequests] =
         useState<FounderRequest[]>([]);
 
     const [loading, setLoading] =
         useState(true);
 
+    // ==========================================
+    // FETCH REQUESTS
+    // ==========================================
 
     const fetchRequests = async () => {
-
         try {
+            setLoading(true);
 
-            const res = await fetch(
-                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/founder-requests`
+            const url =
+                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}` +
+                `/api/founder-requests`;
+
+            console.log(
+                "Fetching requests:",
+                url
             );
 
+            const res = await fetch(url, {
+                cache: "no-store",
+            });
 
             const data = await res.json();
 
+            console.log(
+                "Admin requests response:",
+                data
+            );
 
             if (!res.ok) {
                 throw new Error(
@@ -36,12 +48,15 @@ const AdminReq = () => {
                 );
             }
 
-
-            setRequests(data);
+            setRequests(
+                data.requests ?? []
+            );
 
         } catch (error) {
-
-            console.error(error);
+            console.error(
+                "Fetch requests error:",
+                error
+            );
 
             toast.error(
                 error instanceof Error
@@ -49,10 +64,10 @@ const AdminReq = () => {
                     : "Failed to fetch requests"
             );
 
+            setRequests([]);
+
         } finally {
-
             setLoading(false);
-
         }
     };
 
@@ -62,22 +77,24 @@ const AdminReq = () => {
     }, []);
 
 
+    // ==========================================
+    // APPROVE
+    // ==========================================
+
     const handleApprove = async (
         id: string
     ) => {
-
         try {
-
             const res = await fetch(
-                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/founder-requests/${id}/approve`,
+                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}` +
+                `/api/founder-requests/${id}/approve`,
                 {
                     method: "PATCH",
                 }
             );
 
-
-            const data = await res.json();
-
+            const data =
+                await res.json();
 
             if (!res.ok) {
                 throw new Error(
@@ -86,13 +103,10 @@ const AdminReq = () => {
                 );
             }
 
-
             toast.success(
                 "Founder approved successfully!"
             );
 
-
-            // Remove from pending list
             setRequests((prev) =>
                 prev.filter(
                     (request) =>
@@ -101,7 +115,6 @@ const AdminReq = () => {
             );
 
         } catch (error) {
-
             console.error(error);
 
             toast.error(
@@ -113,22 +126,24 @@ const AdminReq = () => {
     };
 
 
+    // ==========================================
+    // REJECT
+    // ==========================================
+
     const handleReject = async (
         id: string
     ) => {
-
         try {
-
             const res = await fetch(
-                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/founder-requests/${id}/reject`,
+                `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}` +
+                `/api/founder-requests/${id}/reject`,
                 {
                     method: "PATCH",
                 }
             );
 
-
-            const data = await res.json();
-
+            const data =
+                await res.json();
 
             if (!res.ok) {
                 throw new Error(
@@ -137,11 +152,9 @@ const AdminReq = () => {
                 );
             }
 
-
             toast.success(
                 "Founder request rejected"
             );
-
 
             setRequests((prev) =>
                 prev.filter(
@@ -151,7 +164,6 @@ const AdminReq = () => {
             );
 
         } catch (error) {
-
             console.error(error);
 
             toast.error(
@@ -163,8 +175,11 @@ const AdminReq = () => {
     };
 
 
-    if (loading) {
+    // ==========================================
+    // LOADING
+    // ==========================================
 
+    if (loading) {
         return (
             <div className="py-20 text-center">
                 Loading requests...
@@ -172,6 +187,10 @@ const AdminReq = () => {
         );
     }
 
+
+    // ==========================================
+    // UI
+    // ==========================================
 
     return (
         <div className="mx-auto max-w-7xl px-5 py-10">
@@ -199,7 +218,8 @@ const AdminReq = () => {
                     </h2>
 
                     <p className="mt-2 text-gray-500">
-                        New founder requests will appear here.
+                        New founder requests will
+                        appear here.
                     </p>
 
                 </div>
@@ -208,16 +228,26 @@ const AdminReq = () => {
 
                 <div className="grid gap-6 md:grid-cols-2">
 
-                    {requests.map((request) => (
+                    {requests.map(
+                        (request) => (
 
-                        <RequestCard
-                            key={request._id}
-                            request={request}
-                            onApprove={handleApprove}
-                            onReject={handleReject}
-                        />
+                            <RequestCard
+                                key={
+                                    request._id
+                                }
+                                request={
+                                    request
+                                }
+                                onApprove={
+                                    handleApprove
+                                }
+                                onReject={
+                                    handleReject
+                                }
+                            />
 
-                    ))}
+                        )
+                    )}
 
                 </div>
 
@@ -226,6 +256,5 @@ const AdminReq = () => {
         </div>
     );
 };
-
 
 export default AdminReq;
